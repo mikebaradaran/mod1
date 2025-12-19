@@ -1,0 +1,82 @@
+package qa_threads;
+
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
+
+public class Main {
+
+	public static void main(String[] args) throws InterruptedException {
+//		demo1();
+//		demo2();
+//		demo3();
+//		demo4();
+//		demo5();
+	}
+
+	private static void demo5() throws InterruptedException {
+		List<String> files = List.of("report.pdf", "data.csv", "image.png", "notes.txt", "backup.zip");
+
+		ExecutorService executor = Executors.newFixedThreadPool(3);
+
+		for (String file : files) {
+			executor.submit(() -> processFile(file));
+		}
+
+		executor.shutdown();
+		executor.awaitTermination(1, TimeUnit.MINUTES);
+	}
+	
+	private static void processFile(String fileName) {
+		System.out.println(Thread.currentThread().getName() + " processing " + fileName);
+
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+
+		System.out.println(Thread.currentThread().getName() + " finished " + fileName);
+	}
+
+	private static void demo4() {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+
+		for (int i = 0; i < 5; i++) {
+			executor.submit(() -> {
+				System.out.println(Thread.currentThread().getName() + " running");
+			});
+		}
+
+		executor.shutdown();
+	}
+
+	private static void demo3() {
+		Thread t1 = new Thread(() -> System.out.println("Thread running: " + Thread.currentThread().getName()));
+		t1.start();
+
+	}
+
+	private static void demo2() {
+		Thread t1 = new Thread(new MyRunnable());
+		t1.start();
+	}
+
+	public static void demo1() {
+		MyThread t1 = new MyThread();
+		t1.start();
+	}
+
+}
+
+class MyThread extends Thread {
+	public void run() {
+		System.out.println("Demo1: Thread running: " + Thread.currentThread().getName());
+	}
+}
+
+class MyRunnable implements Runnable {
+	public void run() {
+		System.out.println("Thread running: " + Thread.currentThread().getName());
+	}
+}

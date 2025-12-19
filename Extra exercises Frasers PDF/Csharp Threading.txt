@@ -1,0 +1,164 @@
+using System;
+using System.Drawing;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // Basic_Task();
+        // Return_Value_From_Task();
+        // Basic_Threads();
+        // Task_Continuations();
+        // Task_Cancellation();
+        // Parallel_Processing();
+        // processing_multiple_images_at_once();
+    }
+
+    private static void Task_Cancellation()
+    {
+        var cts = new CancellationTokenSource();
+        Task t = Task.Run(() =>
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                cts.Token.ThrowIfCancellationRequested();
+                Console.WriteLine(i);
+                Task.Delay(500).Wait();
+            }
+        }, cts.Token);
+
+        Task.Delay(2000).Wait();
+        cts.Cancel();
+
+    }
+
+    public static void processing_multiple_images_at_once()
+    {
+        string sourceFolder = @"C:\Images\originals";
+        string targetFolder = @"C:\Images\resized";
+
+        Directory.CreateDirectory(targetFolder);
+        string[] files = Directory.GetFiles(sourceFolder, "*.jpg");
+
+        // Parallel processing: resize images simultaneously
+        Parallel.ForEach(files, file =>
+        {
+            using (Image image = Image.FromFile(file))
+            {
+                int newWidth = 800;
+                int newHeight = (int)(image.Height * (800.0 / image.Width));
+
+                using (Bitmap resized = new Bitmap(image, new Size(newWidth, newHeight)))
+                {
+                    string fileName = Path.Combine(targetFolder, Path.GetFileName(file));
+                    resized.Save(fileName);
+                    Console.WriteLine($"Resized: {Path.GetFileName(file)}");
+                }
+            }
+        });
+
+        Console.WriteLine("All images resized.");
+    }
+
+    private static void Parallel_Processing()
+    {
+        Parallel.For(0, 10, i =>
+        {
+            Console.WriteLine($"Index {i}, " +
+                $"Thread {Task.CurrentId}");
+        });
+
+    }
+
+    private static void Return_Value_From_Task()
+    {
+        Task<int> calcTask = Task.Run(() =>
+        {
+            int sum = 0;
+            for (int i = 1; i <= 5; i++)
+                sum += i;
+            return sum;
+        });
+        int result = calcTask.Result;
+        Console.WriteLine(result);
+    }
+
+    private static void Task_Continuations()
+    {
+        Task.Run(() =>
+            Console.WriteLine("Step 1")).
+            ContinueWith(t => Console.WriteLine("Step 2")).
+            ContinueWith(t => Console.WriteLine("Step 3")).
+            Wait();
+    }
+
+    private static void Basic_Threads()
+    {
+        Thread thread = new Thread(() =>
+        {
+            Console.WriteLine("Thread started.");
+            Thread.Sleep(1000);
+        });
+        thread.Start();
+        thread.Join();
+    }
+
+    private static void Basic_Task()
+    {
+        Task task = Task.Run(() =>
+        {
+            Console.WriteLine("Task started...");
+            Task.Delay(1000).Wait();
+            Console.WriteLine("Task finished!");
+        });
+
+        Console.WriteLine("Do other things");
+        task.Wait();
+    }
+}
+//-------------- Lock example --------------
+
+class BankAccount
+{
+    private object _lockObj = new object();
+    private int _balance = 100;
+
+    public void Withdraw(string name, int amount)
+    {
+        Console.WriteLine($"{name} is trying to withdraw {amount}...");
+
+        lock (_lockObj) // only one thread can enter here at a time
+        {
+            if (_balance >= amount)
+            {
+                Console.WriteLine($"{name} sees balance {_balance}. Withdrawing...");
+                Thread.Sleep(1000); // simulate delay
+                _balance -= amount;
+                Console.WriteLine($"{name} completed withdrawal. New balance: {_balance}");
+            }
+            else
+            {
+                Console.WriteLine($"{name} cannot withdraw. Insufficient funds ({_balance}).");
+            }
+        }
+    }
+}
+
+class Bank
+{
+    static void Main()
+    {
+        BankAccount account = new BankAccount();
+
+        Task t1 = Task.Run(() => account.Withdraw("Alice", 70));
+        Task t2 = Task.Run(() => account.Withdraw("Bob", 70));
+
+        Task.WaitAll(t1, t2);
+        Console.WriteLine("All transactions complete.");
+    }
+}
+
+

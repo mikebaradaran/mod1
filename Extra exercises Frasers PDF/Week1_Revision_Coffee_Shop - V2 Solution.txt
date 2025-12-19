@@ -1,0 +1,202 @@
+using System;
+using System.Collections.Generic;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        CoffeeShopApp.Open();
+    }
+}
+
+// 1. ENUM for drink or other item sizes
+public enum Size
+{
+    Small,
+    Medium,
+    Large
+}
+
+// 2. Beverage class
+public class Beverage
+{
+    public string DrinkName { get; set; }
+    public Size DrinkSize { get; set; }
+    public double Price { get; set; }
+
+    public Beverage(string drinkName, Size drinkSize, double price)
+    {
+        DrinkName = drinkName;
+        DrinkSize = drinkSize;
+        Price = price;
+    }
+
+    public override string ToString()
+    {
+        return $"{DrinkName} ({DrinkSize}) - £{Price:F2}";
+    }
+}
+
+// --------- Order class ----------------------------------------------
+public class Order
+{
+    private static int counter = 1;
+    public string OrderId { get; private set; }
+    public Beverage Beverage { get; set; }
+    public double TotalPrice { get; set; }
+
+    // Constructor: sets all values
+    public Order(string orderId, Beverage beverage)
+    {
+        OrderId = orderId;
+        Beverage = beverage;
+        TotalPrice = beverage.Price;
+    }
+
+    // Constructor: all values directly
+    public Order(Beverage beverage) : this($"Ord{counter++}", beverage) { }
+
+    // Default constructor: uses default values (coffee, Small)
+    public Order() : this(new Beverage("Coffee", Size.Small, 2.50)) { }
+
+    public override string ToString()
+    {
+        return $"OrderID: {OrderId}, {Beverage}, Total: £{TotalPrice:F2}";
+    }
+}
+
+// 4. Singleton CoffeeShopManager
+public class CoffeeShopManager
+{
+    private static CoffeeShopManager instance;
+    private CoffeeShopManager()
+    {
+        Menu = new Dictionary<string, double>();
+        CompletedOrders = new List<Order>();
+        PendingOrders = new Queue<Order>();
+    }
+
+    // or can write it as a simple static method like getInstance()
+    public static CoffeeShopManager Instance
+    {
+        get
+        {
+            if (instance == null)
+                instance = new CoffeeShopManager();
+            return instance;
+        }
+    }
+
+    public Dictionary<string, double> Menu { get; private set; }
+    public List<Order> CompletedOrders { get; private set; }
+    public Queue<Order> PendingOrders { get; private set; }
+
+    public void AddOrderToQueue(Order order)
+    {
+        PendingOrders.Enqueue(order);
+        Console.WriteLine($"Added to queue: {order.OrderId}");
+    }
+
+    public void ProcessNextOrder()
+    {
+        if (PendingOrders.Count > 0)
+        {
+            var order = PendingOrders.Dequeue();
+            CompletedOrders.Add(order);
+            Console.WriteLine($"Processed: {order.OrderId}");
+        }
+        else
+        {
+            Console.WriteLine("No orders in queue to process.");
+        }
+    }
+
+    public int GetTotalCompletedOrders() { return CompletedOrders.Count; }
+
+    public double GetTotalRevenue()
+    {
+        double total = 0;
+        foreach (var order in CompletedOrders)
+            total += order.TotalPrice;
+        return total;
+    }
+
+    public void ShowStatus()
+    {
+        Console.WriteLine("\n--- Coffee Shop Status ---");
+        Console.WriteLine($"Pending Orders: {PendingOrders.Count}");
+        Console.WriteLine($"Completed Orders: {CompletedOrders.Count}");
+        Console.WriteLine($"Total Revenue: £{GetTotalRevenue():F2}");
+        Console.WriteLine("---------------------------\n");
+    }
+}
+
+// 5. Static OrderFactory - All the methods and fields should be static -------
+public static class OrderFactory
+{
+    public static Order CreateOrder(string drinkName, Size size)
+    {
+        var manager = CoffeeShopManager.Instance;
+
+        if (!manager.Menu.ContainsKey(drinkName))
+        {
+            Console.WriteLine($"Error: {drinkName} not found in menu!");
+            return null;
+        }
+
+        double basePrice = manager.Menu[drinkName];
+        double sizeMultiplier = 1.0;
+        if (size == Size.Medium)
+            sizeMultiplier = 1.3;
+        else if (size == Size.Large)
+            sizeMultiplier = 1.6;
+
+        double finalPrice = basePrice * sizeMultiplier;
+        Beverage beverage = new Beverage(drinkName, size, finalPrice);
+
+        return new Order(beverage);
+    }
+}
+
+// 6. Main class
+public class CoffeeShopApp
+{
+    public static void Open()
+    {
+        var manager = CoffeeShopManager.Instance;
+
+        // Add menu items
+        manager.Menu.Add("Coffee", 2.50);
+        manager.Menu.Add("Latte", 3.50);
+        manager.Menu.Add("Cappuccino", 3.00);
+        manager.Menu.Add("Mocha", 4.00);
+
+        // Create orders using factory
+        var order1 = OrderFactory.CreateOrder("Latte", Size.Medium);
+        var order2 = OrderFactory.CreateOrder("Mocha", Size.Large);
+        var order3 = OrderFactory.CreateOrder("Coffee", Size.Small);
+
+        // Add to queue
+        manager.AddOrderToQueue(order1);
+        manager.AddOrderToQueue(order2);
+        manager.AddOrderToQueue(order3);
+
+        // Process some orders
+        manager.ProcessNextOrder();
+        manager.ProcessNextOrder();
+
+        // Show current state
+        manager.ShowStatus();
+
+        Console.WriteLine("Completed Orders:");
+        foreach (var order in manager.CompletedOrders)
+            Console.WriteLine(order);
+
+        Console.WriteLine("\nPending Orders:");
+        foreach (var order in manager.PendingOrders)
+            Console.WriteLine(order);
+    }
+}
+
+
+
