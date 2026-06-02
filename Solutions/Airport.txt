@@ -1,0 +1,68 @@
+package qa.lab1;
+
+import java.util.Scanner;
+
+public class Airport {
+    public static void main(String[] args) {
+
+        Scanner sc = new Scanner(System.in);
+
+        // --> Get currency information from user 
+        System.out.print("Enter amount in GBP: ");
+        double amount = sc.nextDouble();
+
+        System.out.println("Choose currency: 1 = USD, 2 = EUR, 3 = JPY");
+        int currency = sc.nextInt();
+
+        System.out.println("Enter customer type (R = Regular, V = VIP, S = Staff): ");
+        char type = sc.next().toUpperCase().charAt(0);
+
+        // --> Convert
+        double rate = 0;
+
+        switch (currency) {
+            case 1:
+                rate = 1.25; // USD
+                break;
+            case 2:
+                rate = 1.15; // EUR
+                break;
+            case 3:
+                rate = 180.50; // JPY
+                break;
+            default:
+                System.out.println("Invalid currency option.");
+                return;
+        }
+
+        // --> Add service fee
+        double feeRate = (amount < 100) ? 0.05 : 0.025;
+        double afterFee = amount - (amount * feeRate);
+
+        // --> Add tax
+        double taxRate = 0;
+
+        if (type == 'R') {
+            taxRate = 0.10;
+        } else if (type == 'V') {
+            taxRate = 0.05;
+        } else if (type == 'S') {
+            taxRate = 0.00; 		// Staff added
+        } else {
+            System.out.println("Invalid customer type.");
+            return;
+        }
+
+        double afterTax = afterFee - (afterFee * taxRate);
+
+        // --> Final calculations
+        double foreign = afterTax * rate;
+        int finalAmount = (int) foreign; // cast to whole units
+
+        // --> Display
+        System.out.println("\n--- Results ---");
+        System.out.printf("Amount after service fee: £%.2f%n", afterFee);
+        System.out.printf("Amount after tax: £%.2f%n", afterTax);
+        System.out.println("Final amount in foreign currency (whole units): " + finalAmount);
+    }
+}
