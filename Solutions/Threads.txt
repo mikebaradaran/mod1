@@ -1,0 +1,224 @@
+public class Counter
+{
+    private int value = 0;
+
+    public void increment()
+    {
+        value++;
+    }
+
+    public int getValue()
+    {
+        return value;
+    }
+}
+//--------------------------------
+
+public class Worker implements Runnable
+{
+    private Counter counter;
+
+    public Worker(Counter counter)
+    {
+        this.counter = counter;
+    }
+
+    @Override
+    public void run()
+    {
+        System.out.println(
+            Thread.currentThread().getName()
+            + " started");
+
+        for(int i = 0; i < 10000; i++)
+        {
+            counter.increment();
+        }
+
+        System.out.println(
+            Thread.currentThread().getName()
+            + " finished");
+    }
+}
+
+//--------------------------------------------------
+
+public class Main
+{
+    public static void main(String[] args)
+            throws InterruptedException
+    {
+        Counter counter = new Counter();
+
+        int threadCount = 7;
+
+        Thread[] threads =
+                new Thread[threadCount];
+
+        for(int i = 0; i < threadCount; i++)
+        {
+            threads[i] =
+                new Thread(
+                    new Worker(counter));
+
+            threads[i].start();
+        }
+
+        for(Thread t : threads)
+        {
+            t.join();
+        }
+
+        System.out.println(
+            "\nExpected: "
+            + (threadCount * 10000));
+
+        System.out.println(
+            "Actual: "
+            + counter.getValue());
+    }
+}
+
+// --- Run the app many times. The actual value will vary from run to run.
+
+// -- Part 2: Fix Using synchronized ---------------
+
+public class Counter
+{
+    private int value = 0;
+
+    public synchronized void increment()
+    {
+        value++;
+    }
+
+    public int getValue()
+    {
+        return value;
+    }
+}
+//----------------------------------------
+
+Alternative using lock
+
+public class Counter
+{
+    private int value = 0;
+
+    private final Object lock =
+            new Object();
+
+    public void increment()
+    {
+        synchronized(lock)
+        {
+            value++;
+        }
+    }
+
+    public int getValue()
+    {
+        return value;
+    }
+}
+
+// ---------- Part 3: ExecutorService Version
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class Main
+{
+    public static void main(String[] args)
+            throws InterruptedException
+    {
+        Counter counter = new Counter();
+
+        int taskCount = 7;
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(5);
+
+        for(int i = 0; i < taskCount; i++)
+        {
+            executor.submit(
+                new Worker(counter));
+        }
+
+        executor.shutdown();
+
+        executor.awaitTermination(
+                1,
+                TimeUnit.MINUTES);
+
+        System.out.println(
+            "\nExpected: "
+            + (taskCount * 10000));
+
+        System.out.println(
+            "Actual: "
+            + counter.getValue());
+    }
+}
+//---------------------------------------
+
+//-- Extension 1: AtomicInteger - No synchronized is required. -------------
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class Counter
+{
+    private AtomicInteger value =
+            new AtomicInteger();
+
+    public void increment()
+    {
+        value.incrementAndGet();
+    }
+
+    public int getValue()
+    {
+        return value.get();
+    }
+}
+
+//-------Extension 2: Bank Account Race Condition
+
+public class BankAccount
+{
+    private int balance = 1000;
+
+    public void withdraw(int amount)
+    {
+        balance -= amount;
+    }
+
+    public int getBalance()
+    {
+        return balance;
+    }
+}
+
+public class WithdrawWorker
+        implements Runnable
+{
+    private BankAccount account;
+
+    public WithdrawWorker(
+            BankAccount account)
+    {
+        this.account = account;
+    }
+
+    @Override
+    public void run()
+    {
+        for(int i = 0; i < 100; i++)
+        {
+            account.withdraw(1);
+        }
+    }
+}
+
+
