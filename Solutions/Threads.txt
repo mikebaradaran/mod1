@@ -1,224 +1,287 @@
-public class Counter
-{
-    private int value = 0;
+//---------- Demo1 -----------------
 
-    public void increment()
-    {
-        value++;
-    }
+class Counter {
+	private int value = 0;
 
-    public int getValue()
-    {
-        return value;
-    }
-}
-//--------------------------------
+	public void increment() {
+		value++;
+	}
 
-public class Worker implements Runnable
-{
-    private Counter counter;
-
-    public Worker(Counter counter)
-    {
-        this.counter = counter;
-    }
-
-    @Override
-    public void run()
-    {
-        System.out.println(
-            Thread.currentThread().getName()
-            + " started");
-
-        for(int i = 0; i < 10000; i++)
-        {
-            counter.increment();
-        }
-
-        System.out.println(
-            Thread.currentThread().getName()
-            + " finished");
-    }
+	public int getValue() {
+		return value;
+	}
 }
 
-//--------------------------------------------------
 
-public class Main
-{
-    public static void main(String[] args)
-            throws InterruptedException
-    {
-        Counter counter = new Counter();
+class Worker implements Runnable {
+	private Counter counter;
 
-        int threadCount = 7;
+	public Worker(Counter counter) {
+		this.counter = counter;
+	}
 
-        Thread[] threads =
-                new Thread[threadCount];
+	@Override
+	public void run() {
+		System.out.println(Thread.currentThread().getName() + " started");
 
-        for(int i = 0; i < threadCount; i++)
-        {
-            threads[i] =
-                new Thread(
-                    new Worker(counter));
+		for (int i = 0; i < 10000; i++) {
+			counter.increment();
+		}
 
-            threads[i].start();
-        }
-
-        for(Thread t : threads)
-        {
-            t.join();
-        }
-
-        System.out.println(
-            "\nExpected: "
-            + (threadCount * 10000));
-
-        System.out.println(
-            "Actual: "
-            + counter.getValue());
-    }
+		System.out.println(Thread.currentThread().getName() + " finished");
+	}
 }
 
-// --- Run the app many times. The actual value will vary from run to run.
+public class ThreadMain {
+	public static void main(String[] args) throws InterruptedException {
+		Counter counter = new Counter();
 
-// -- Part 2: Fix Using synchronized ---------------
+		int threadCount = 7;
 
-public class Counter
-{
-    private int value = 0;
+		Thread[] threads = new Thread[threadCount];
 
-    public synchronized void increment()
-    {
-        value++;
-    }
+		for (int i = 0; i < threadCount; i++) {
+			threads[i] = new Thread(new Worker(counter));
 
-    public int getValue()
-    {
-        return value;
-    }
-}
-//----------------------------------------
+			threads[i].start();
+		}
 
-Alternative using lock
+		for (Thread t : threads) {
+			t.join();
+		}
 
-public class Counter
-{
-    private int value = 0;
+		System.out.println("\nExpected: " + (threadCount * 10000));
 
-    private final Object lock =
-            new Object();
-
-    public void increment()
-    {
-        synchronized(lock)
-        {
-            value++;
-        }
-    }
-
-    public int getValue()
-    {
-        return value;
-    }
+		System.out.println("Actual: " + counter.getValue());
+	}
 }
 
-// ---------- Part 3: ExecutorService Version
+//---------- Demo1 -----------------
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class ThreadMain2 {
+	public static void main(String[] args) throws InterruptedException {
+		Counter counter = new Counter();
+
+		int taskCount = 7;
+
+		ExecutorService executor = Executors.newFixedThreadPool(5);
+
+		for (int i = 0; i < taskCount; i++) {
+			executor.submit(new Worker(counter));
+		}
+
+		executor.shutdown();
+
+		executor.awaitTermination(1, TimeUnit.MINUTES);
+
+		System.out.println("\nExpected: " + (taskCount * 10000));
+
+		System.out.println("Actual: " + counter.getValue());
+	}
+}
+
+//---------- Demo3 -----------------
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class Main
-{
-    public static void main(String[] args)
-            throws InterruptedException
-    {
-        Counter counter = new Counter();
+class SafeCounter {
+	int value = 0;
 
+	public synchronized void increment() {
+		value++;
+	}
+	
+	public int getValue() {
+		return value;
+	}
+}
+
+class SafeWorker implements Runnable {
+	private SafeCounter counter;
+
+	public SafeWorker(SafeCounter counter) {
+		this.counter = counter;
+	}
+
+	@Override
+	public void run() {
+		System.out.println(Thread.currentThread().getName() + " started");
+
+		for (int i = 0; i < 10000; i++) {
+			counter.increment();
+		}
+
+		System.out.println(Thread.currentThread().getName() + " finished");
+	}
+}
+
+
+public class ThreadMain3 {
+	public static void main(String[] args) throws InterruptedException {
+		SafeCounter safe_counter = new SafeCounter();
+
+		int taskCount = 7;
+
+		ExecutorService executor = Executors.newFixedThreadPool(5);
+
+		for (int i = 0; i < taskCount; i++) {
+			executor.submit(new SafeWorker(safe_counter));
+		}
+
+		executor.shutdown();
+
+		executor.awaitTermination(1, TimeUnit.MINUTES);
+
+		System.out.println("\nExpected: " + (taskCount * 10000));
+
+		System.out.println("Actual: " + safe_counter.getValue());
+	}
+}
+
+// ============================ C# =========================================
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+class SafeCounter
+{
+    private int value = 0;
+    private readonly object lockObj = new object();
+
+    public void Increment()
+    {
+        lock (lockObj)   // same as synchronized in Java
+        {
+            value++;
+        }
+    }
+
+    public int GetValue()
+    {
+        lock (lockObj)
+        {
+            return value;
+        }
+    }
+}
+
+class SafeWorker
+{
+    private readonly SafeCounter counter;
+
+    public SafeWorker(SafeCounter counter)
+    {
+        this.counter = counter;
+    }
+
+    public void Run()
+    {
+        Console.WriteLine($"{Thread.CurrentThread.ManagedThreadId} started");
+
+        for (int i = 0; i < 10000; i++)
+        {
+            counter.Increment();
+        }
+
+        Console.WriteLine($"{Thread.CurrentThread.ManagedThreadId} finished");
+    }
+}
+
+class ThreadMain3
+{
+    static void Main()
+    {
+        SafeCounter counter = new SafeCounter();
         int taskCount = 7;
 
-        ExecutorService executor =
-                Executors.newFixedThreadPool(5);
+        Task[] tasks = new Task[taskCount];
 
-        for(int i = 0; i < taskCount; i++)
+        for (int i = 0; i < taskCount; i++)
         {
-            executor.submit(
-                new Worker(counter));
+            SafeWorker worker = new SafeWorker(counter);
+            tasks[i] = Task.Run(() => worker.Run());
         }
 
-        executor.shutdown();
+        Task.WaitAll(tasks);
 
-        executor.awaitTermination(
-                1,
-                TimeUnit.MINUTES);
-
-        System.out.println(
-            "\nExpected: "
-            + (taskCount * 10000));
-
-        System.out.println(
-            "Actual: "
-            + counter.getValue());
-    }
-}
-//---------------------------------------
-
-//-- Extension 1: AtomicInteger - No synchronized is required. -------------
-
-import java.util.concurrent.atomic.AtomicInteger;
-
-public class Counter
-{
-    private AtomicInteger value =
-            new AtomicInteger();
-
-    public void increment()
-    {
-        value.incrementAndGet();
-    }
-
-    public int getValue()
-    {
-        return value.get();
+        Console.WriteLine($"\nExpected: {taskCount * 10000}");
+        Console.WriteLine($"Actual:   {counter.GetValue()}");
     }
 }
 
-//-------Extension 2: Bank Account Race Condition
+// =========================== C# using Task ==========================
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-public class BankAccount
+class SafeCounter
 {
-    private int balance = 1000;
+    private int value = 0;
+    private readonly object lockObj = new object();
 
-    public void withdraw(int amount)
+    public void Increment()
     {
-        balance -= amount;
-    }
-
-    public int getBalance()
-    {
-        return balance;
-    }
-}
-
-public class WithdrawWorker
-        implements Runnable
-{
-    private BankAccount account;
-
-    public WithdrawWorker(
-            BankAccount account)
-    {
-        this.account = account;
-    }
-
-    @Override
-    public void run()
-    {
-        for(int i = 0; i < 100; i++)
+        lock (lockObj)   // same as synchronized in Java
         {
-            account.withdraw(1);
+            value++;
+        }
+    }
+
+    public int GetValue()
+    {
+        lock (lockObj)
+        {
+            return value;
         }
     }
 }
 
+class SafeWorker
+{
+    private readonly SafeCounter counter;
+
+    public SafeWorker(SafeCounter counter)
+    {
+        this.counter = counter;
+    }
+
+    public void Run()
+    {
+        Console.WriteLine($"Task {Task.CurrentId} started");
+
+        for (int i = 0; i < 10000; i++)
+        {
+            counter.Increment();
+        }
+
+        Console.WriteLine($"Task {Task.CurrentId} finished");
+    }
+}
+
+class Program
+{
+    static async Task Main()
+    {
+        SafeCounter counter = new SafeCounter();
+        int taskCount = 7;
+
+        Task[] tasks = new Task[taskCount];
+
+        for (int i = 0; i < taskCount; i++)
+        {
+            SafeWorker worker = new SafeWorker(counter);
+            tasks[i] = Task.Run(() => worker.Run());
+        }
+
+        await Task.WhenAll(tasks);
+
+        Console.WriteLine($"\nExpected: {taskCount * 10000}");
+        Console.WriteLine($"Actual:   {counter.GetValue()}");
+    }
+}
 
