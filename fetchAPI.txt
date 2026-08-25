@@ -1,0 +1,40 @@
+package web;
+
+import java.io.*;
+import java.net.*;
+
+public class JSON {
+
+	public static void main(String[] args) {
+		String res = fetch("https://tx100.onrender.com/customers");
+		System.out.println(res);
+	}
+
+	public static String fetch(String urlStr) {
+		try {
+			URL url = new URL(urlStr);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+
+			if (conn.getResponseCode() == 200) {
+				BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+				StringBuilder response = new StringBuilder();
+				String line;
+
+				while ((line = reader.readLine()) != null) {
+					response.append(line);
+				}
+				reader.close();
+
+				// Raw JSON String output
+				return (response.toString());
+			} else {
+				System.out.println("HTTP Error: " + conn.getResponseCode());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+}
